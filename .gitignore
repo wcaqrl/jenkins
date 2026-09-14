@@ -1,0 +1,37 @@
+# LPK and container build artifacts
+dist/*
+!dist/.gitkeep
+*.lpk
+*.tar
+*.tar.gz
+*.tar.xz
+image/downloads/
+
+# Local and remote validation state
+.secrets/
+secrets/
+validation/
+reports/
+docs/custom/
+legacy/
+pack-tools/
+pack-npm-cache/
+docker-config/
+
+# Credentials and environment overrides
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+
+# Tool caches and editor files
+.lzc-cli-*
+__pycache__/
+*.py[cod]
+.DS_Store
+.idea/
+.vscode/
+*.log
+*.tmp
+*.part

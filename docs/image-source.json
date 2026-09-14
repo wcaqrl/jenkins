@@ -1,0 +1,40 @@
+{
+  "checked_on": "2026-09-10",
+  "source_url": "https://hub.docker.com/v2/repositories/jenkins/jenkins/tags/lts-jdk21",
+  "repository": "jenkins/jenkins",
+  "tag": "lts-jdk21",
+  "index_digest": "sha256:c1e4c349365f6d16d88595b2c5f7e8ff39b8ae1d061f62420bac193b4b9616d0",
+  "last_updated": "2026-09-02T12:51:00.756057Z",
+  "platforms": [
+    {
+      "os": "linux",
+      "architecture": "amd64",
+      "variant": null,
+      "digest": "sha256:68964c38dbb70c0bf6adff480d6dda2e1191d2d07e076c9fd2996345303eb999"
+    },
+    {
+      "os": "linux",
+      "architecture": "ppc64le",
+      "variant": null,
+      "digest": "sha256:a49b70b22067e7dc6eb5d90fec30d7145f991a5c47889ac13bc74a4751df2682"
+    },
+    {
+      "os": "linux",
+      "architecture": "arm64",
+      "variant": null,
+      "digest": "sha256:9047bc8cf9b3d421615d367ebe1491e920c0ca386ddbd7c7ff7f1ee3001d9f17"
+    },
+    {
+      "os": "linux",
+      "architecture": "s390x",
+      "variant": null,
+      "digest": "sha256:d9eae42c8841064aca65bf0943b3dafd17183634ada7c1cec9f4b91c1dbeddf6"
+    },
+    {
+      "os": "linux",
+      "architecture": "riscv64",
+      "variant": null,
+      "digest": "sha256:8e49c772b30721b914b00a3fa4627d4d133cd9dd4d9d8ca02df90f03bd975ef9"
+    }
+  ]
+}

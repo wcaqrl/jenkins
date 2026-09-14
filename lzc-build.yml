@@ -1,0 +1,4 @@
+# 仅打包元数据、运行配置和图标；镜像由安装环境从仓库获取。
+manifest: ./lzc-manifest.yml
+icon: ./lzc-icon.png
+pkgout: ./dist
