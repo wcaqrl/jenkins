@@ -5,7 +5,7 @@
 1. `Build Jenkins custom image` 每 6 小时读取官方 `jenkins/jenkins:lts-jdk21` 的 amd64 摘要。
 2. 摘要或本仓库镜像配置变化时，更新 `image/Dockerfile` 与 `image/versions.lock.json`，下载并校验固定版本的 Go、Node.js 包，然后构建定制镜像。
 3. `scripts/ci-validate.sh` 启动隔离实例，检查 Jenkins、插件、深色主题、Python、Git、Go、Node.js、npm、Pipeline、管理员改密和重启持久化。只有全部通过才推送到 `ghcr.io/wcaqrl/jenkins-lazycat:lts-jdk21`。
-4. 镜像检查完成后以 `workflow_dispatch` 启动 `Publish LazyCat Jenkins`，再调用 `ca-x/lazycat-github-action`。Action 按 amd64 digest 判断变化，通过开发者平台 `copy-image` 将定制镜像转存到 `registry.lazycat.cloud/peter/`，把应用 patch 版本递增，修改 `lzc-manifest.yml` 和 `package.yml`，构建及官方 lint LPK，创建 GitHub Release，再上传 LPK 并创建审核。
+4. 镜像工作流成功后以 `workflow_run` 启动 `Publish LazyCat Jenkins`，再调用 `ca-x/lazycat-github-action`。Action 按 amd64 digest 判断变化，通过开发者平台 `copy-image` 将定制镜像转存到 `registry.lazycat.cloud/peter/`，把应用 patch 版本递增，修改 `lzc-manifest.yml` 和 `package.yml`，构建及官方 lint LPK，创建 GitHub Release，再上传 LPK 并创建审核。
 5. 同一 digest 重复执行不会增加版本；已有 Release、商店版本或审核中的版本会被识别，流水线可用于恢复中断的发布。
 
 `lazycat-github-action` 的镜像交付发生在 LPK buildscript 之前，所以定制 Jenkins 镜像必须由第一条 workflow 先构建，不能直接把 `jenkins/jenkins` 配成 LPK 的运行镜像。

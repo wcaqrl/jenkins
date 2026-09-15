@@ -2,18 +2,11 @@ name: Publish LazyCat Jenkins
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - .github/lazycat-action.yml
-      - .github/workflows/publish-lazycat.yml
-      - lzc-build.yml
-      - lzc-manifest.yml
-      - package.yml
-      - lzc-icon.png
+  workflow_run:
+    workflows: [Build Jenkins custom image]
+    types: [completed]
 
 permissions:
-  actions: write
   contents: write
   pull-requests: write
 
@@ -22,17 +15,8 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  dispatch:
-    if: github.event_name == 'push'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Start trusted publication check
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh workflow run publish-lazycat.yml --ref main
-
   prerequisites:
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     outputs:
       ready: ${{ steps.check.outputs.ready }}

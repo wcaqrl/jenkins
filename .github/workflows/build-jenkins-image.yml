@@ -79,7 +79,7 @@ jobs:
 
       - name: Download and verify pinned toolchains
         if: steps.upstream.outputs.changed == 'true'
-        run: scripts/fetch-downloads.py image
+        run: python3 scripts/fetch-downloads.py image
 
       - name: Build amd64 image
         if: steps.upstream.outputs.changed == 'true'
@@ -141,9 +141,3 @@ jobs:
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git commit -m "Update Jenkins LTS to ${{ steps.upstream.outputs.version }} [skip ci]"
           git push
-
-      - name: Start LazyCat publication check
-        shell: bash
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh workflow run publish-lazycat.yml --ref main
