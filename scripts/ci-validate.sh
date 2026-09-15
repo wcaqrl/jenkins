@@ -12,6 +12,22 @@ artifact_dir="${JENKINS_VALIDATION_ARTIFACT_DIR:-/tmp/jenkins-validation-report}
 cleanup() {
   status=$?
   mkdir -p "$artifact_dir"
+  if (( status != 0 )); then
+    {
+      echo '## Jenkins image validation failure'
+      echo
+      echo "Exit status: \`$status\`"
+      for report in validation-error.log transition-error.log pipeline-console.txt; do
+        if [[ -s "$root/reports/$report" ]]; then
+          echo
+          echo "### $report"
+          echo '```text'
+          tail -n 80 "$root/reports/$report"
+          echo '```'
+        fi
+      done
+    } >>"${GITHUB_STEP_SUMMARY:-/dev/null}" 2>/dev/null || true
+  fi
   cp -a "$root/reports/." "$artifact_dir/" >/dev/null 2>&1 || true
   if (( status != 0 )) && [[ -s "$root/reports/validation-error.log" ]]; then
     validation_tail="$(tail -c 1500 "$root/reports/validation-error.log")"

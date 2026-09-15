@@ -101,7 +101,7 @@ jobs:
         run: scripts/ci-validate.sh "${{ steps.build.outputs.candidate }}"
 
       - name: Report validation failure
-        if: failure() && steps.upstream.outputs.changed == 'true'
+        if: failure()
         shell: bash
         env:
           REPORT_DIR: ${{ runner.temp }}/jenkins-validation-report
@@ -116,6 +116,13 @@ jobs:
           if [[ -z "${report_file}" ]]; then
             exit 0
           fi
+          {
+            echo '## Jenkins validation report'
+            echo
+            echo '```text'
+            tail -n 80 "${report_file}"
+            echo '```'
+          } >>"${GITHUB_STEP_SUMMARY}"
           message="$(tail -c 1500 "${report_file}")"
           message="${message//'%'/'%25'}"
           message="${message//$'\r'/'%0D'}"
