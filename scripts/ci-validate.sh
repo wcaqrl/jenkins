@@ -10,8 +10,23 @@ root="$(mktemp -d)"
 artifact_dir="${JENKINS_VALIDATION_ARTIFACT_DIR:-/tmp/jenkins-validation-report}"
 
 cleanup() {
+  status=$?
   mkdir -p "$artifact_dir"
   cp -a "$root/reports/." "$artifact_dir/" >/dev/null 2>&1 || true
+  if "$engine" container inspect "$container" >/dev/null 2>&1; then
+    "$engine" logs "$container" >"$artifact_dir/container.log" 2>&1 || true
+    "$engine" container inspect "$container" >"$artifact_dir/container-inspect.json" 2>&1 || true
+    if (( status != 0 )); then
+      echo '::group::Jenkins validation container log'
+      "$engine" logs --tail 120 "$container" 2>&1 || true
+      echo '::endgroup::'
+      log_tail="$("$engine" logs --tail 40 "$container" 2>&1 || true)"
+      log_tail="${log_tail//'%'/'%25'}"
+      log_tail="${log_tail//$'\r'/'%0D'}"
+      log_tail="${log_tail//$'\n'/'%0A'}"
+      echo "::error title=Jenkins validation failed::${log_tail}"
+    fi
+  fi
   "$engine" rm -f -v "$container" >/dev/null 2>&1 || true
   rm -rf "$root"
 }
