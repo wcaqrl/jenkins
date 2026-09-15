@@ -1,8 +1,8 @@
 import urllib.request, urllib.parse, urllib.error, http.cookiejar
 import base64,json,os,pathlib,secrets,string,time,sys,xml.sax.saxutils,subprocess
 root=pathlib.Path(os.environ.get('JENKINS_VALIDATION_ROOT','/lzcsys/var/jenkins-custom'))
-home=pathlib.Path(os.environ.get('JENKINS_VALIDATION_HOME',str(root/'validation/var/jenkins')))
 base=os.environ.get('JENKINS_VALIDATION_BASE_URL','http://127.0.0.1:18080').rstrip('/')
+initial_password=os.environ.get('JENKINS_VALIDATION_INITIAL_PASSWORD','peter111')
 plugins_file=pathlib.Path(os.environ.get('JENKINS_VALIDATION_PLUGINS_FILE',str(root/'build/plugins.txt')))
 reports_dir=pathlib.Path(os.environ.get('JENKINS_VALIDATION_REPORTS_DIR',str(root/'reports')))
 reports_dir.mkdir(parents=True,exist_ok=True)
@@ -12,7 +12,7 @@ while True:
         if '--after-restart' in sys.argv:
             password=(root/'secrets/changed-admin-password').read_text().strip()
         else:
-            password=(home/'secrets/admin-password').read_text().strip()
+            password=initial_password
         if urllib.request.urlopen(base+'/login',timeout=5).status==200: break
     except (OSError,urllib.error.URLError): pass
     if time.time()>deadline: raise SystemExit('Jenkins startup timed out')
@@ -21,7 +21,7 @@ if '--after-restart' in sys.argv:
     assert len(password)==16 and '_' in password
     assert any(c.islower() for c in password) and any(c.isupper() for c in password) and any(c.isdigit() for c in password)
 else:
-    assert password=='peter111'
+    assert password==initial_password
 opener=urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
 auth='Basic '+base64.b64encode(('admin:'+password).encode()).decode()
 def request(path, data=None, ctype=None, crumb=None):
