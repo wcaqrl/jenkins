@@ -82,7 +82,8 @@ run_validation() {
 }
 
 run_validation
-"$engine" restart -t 30 "$container" >/dev/null
+"$engine" stop -t 30 "$container" >/dev/null
+"$engine" start "$container" >/dev/null
 run_validation --after-restart
 
 echo "Validation reports will be copied to $artifact_dir"
