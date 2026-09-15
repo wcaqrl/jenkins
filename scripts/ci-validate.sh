@@ -82,8 +82,14 @@ run_validation() {
 }
 
 run_validation
-"$engine" stop -t 30 "$container" >/dev/null
-"$engine" start "$container" >/dev/null
+if ! transition_output="$("$engine" stop -t 30 "$container" 2>&1)"; then
+  printf 'docker stop failed:\n%s\n' "$transition_output" >"$root/reports/transition-error.log"
+  exit 1
+fi
+if ! transition_output="$("$engine" start "$container" 2>&1)"; then
+  printf 'docker start failed:\n%s\n' "$transition_output" >"$root/reports/transition-error.log"
+  exit 1
+fi
 run_validation --after-restart
 
 echo "Validation reports will be copied to $artifact_dir"

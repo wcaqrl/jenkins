@@ -104,12 +104,19 @@ jobs:
         if: failure() && steps.upstream.outputs.changed == 'true'
         shell: bash
         env:
-          REPORT_FILE: ${{ runner.temp }}/jenkins-validation-report/validation-error.log
+          REPORT_DIR: ${{ runner.temp }}/jenkins-validation-report
         run: |
-          if [[ ! -s "${REPORT_FILE}" ]]; then
+          report_file=""
+          for candidate in validation-error.log transition-error.log; do
+            if [[ -s "${REPORT_DIR}/${candidate}" ]]; then
+              report_file="${REPORT_DIR}/${candidate}"
+              break
+            fi
+          done
+          if [[ -z "${report_file}" ]]; then
             exit 0
           fi
-          message="$(tail -c 1500 "${REPORT_FILE}")"
+          message="$(tail -c 1500 "${report_file}")"
           message="${message//'%'/'%25'}"
           message="${message//$'\r'/'%0D'}"
           message="${message//$'\n'/'%0A'}"
