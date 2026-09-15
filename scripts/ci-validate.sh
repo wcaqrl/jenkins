@@ -57,7 +57,7 @@ validation_env=(
 )
 
 run_validation() {
-  local output status escaped
+  local output status output_tail escaped
   set +e
   output="$(env "${validation_env[@]}" python3 -u scripts/verify-on-box.py "$@" 2>&1)"
   status=$?
@@ -65,10 +65,11 @@ run_validation() {
   printf '%s\n' "$output"
   if (( status != 0 )); then
     printf '%s\n' "$output" >"$root/reports/validation-error.log"
-    escaped="${output//'%'/'%25'}"
+    output_tail="${output: -2000}"
+    escaped="${output_tail//'%'/'%25'}"
     escaped="${escaped//$'\r'/'%0D'}"
     escaped="${escaped//$'\n'/'%0A'}"
-    echo "::error title=Jenkins validation script failed::${escaped}"
+    echo "::error file=scripts/verify-on-box.py,title=Jenkins validation script failed::${escaped}"
   fi
   return "$status"
 }
