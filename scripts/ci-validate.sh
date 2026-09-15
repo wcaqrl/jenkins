@@ -55,8 +55,26 @@ validation_env=(
   "JENKINS_VALIDATION_PLUGINS_FILE=$PWD/image/plugins.txt"
   "JENKINS_VALIDATION_REPORTS_DIR=$root/reports"
 )
-env "${validation_env[@]}" python3 -u scripts/verify-on-box.py
+
+run_validation() {
+  local output status escaped
+  set +e
+  output="$(env "${validation_env[@]}" python3 -u scripts/verify-on-box.py "$@" 2>&1)"
+  status=$?
+  set -e
+  printf '%s\n' "$output"
+  if (( status != 0 )); then
+    printf '%s\n' "$output" >"$root/reports/validation-error.log"
+    escaped="${output//'%'/'%25'}"
+    escaped="${escaped//$'\r'/'%0D'}"
+    escaped="${escaped//$'\n'/'%0A'}"
+    echo "::error title=Jenkins validation script failed::${escaped}"
+  fi
+  return "$status"
+}
+
+run_validation
 "$engine" restart -t 30 "$container" >/dev/null
-env "${validation_env[@]}" python3 -u scripts/verify-on-box.py --after-restart
+run_validation --after-restart
 
 echo "Validation reports will be copied to $artifact_dir"
