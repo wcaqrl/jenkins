@@ -13,6 +13,13 @@ cleanup() {
   status=$?
   mkdir -p "$artifact_dir"
   cp -a "$root/reports/." "$artifact_dir/" >/dev/null 2>&1 || true
+  if (( status != 0 )) && [[ -s "$root/reports/validation-error.log" ]]; then
+    validation_tail="$(tail -c 1500 "$root/reports/validation-error.log")"
+    validation_tail="${validation_tail//'%'/'%25'}"
+    validation_tail="${validation_tail//$'\r'/'%0D'}"
+    validation_tail="${validation_tail//$'\n'/'%0A'}"
+    echo "::error title=Jenkins validation error::${validation_tail}"
+  fi
   if "$engine" container inspect "$container" >/dev/null 2>&1; then
     "$engine" logs "$container" >"$artifact_dir/container.log" 2>&1 || true
     "$engine" container inspect "$container" >"$artifact_dir/container-inspect.json" 2>&1 || true
