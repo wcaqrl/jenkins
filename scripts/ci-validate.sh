@@ -11,6 +11,7 @@ artifact_dir="${JENKINS_VALIDATION_ARTIFACT_DIR:-/tmp/jenkins-validation-report}
 
 cleanup() {
   status=$?
+  set +e
   mkdir -p "$artifact_dir"
   if (( status != 0 )); then
     {
@@ -51,7 +52,12 @@ cleanup() {
     fi
   fi
   "$engine" rm -f -v "$container" >/dev/null 2>&1 || true
-  rm -rf "$root"
+  if command -v sudo >/dev/null 2>&1; then
+    sudo rm -rf "$root" >/dev/null 2>&1 || true
+  else
+    rm -rf "$root" >/dev/null 2>&1 || true
+  fi
+  return "$status"
 }
 trap cleanup EXIT
 
