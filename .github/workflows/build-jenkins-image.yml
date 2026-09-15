@@ -100,6 +100,21 @@ jobs:
           JENKINS_VALIDATION_ARTIFACT_DIR: ${{ runner.temp }}/jenkins-validation-report
         run: scripts/ci-validate.sh "${{ steps.build.outputs.candidate }}"
 
+      - name: Report validation failure
+        if: failure() && steps.upstream.outputs.changed == 'true'
+        shell: bash
+        env:
+          REPORT_FILE: ${{ runner.temp }}/jenkins-validation-report/validation-error.log
+        run: |
+          if [[ ! -s "${REPORT_FILE}" ]]; then
+            exit 0
+          fi
+          message="$(tail -c 1500 "${REPORT_FILE}")"
+          message="${message//'%'/'%25'}"
+          message="${message//$'\r'/'%0D'}"
+          message="${message//$'\n'/'%0A'}"
+          echo "::error file=scripts/verify-on-box.py,title=Jenkins validation error::${message}"
+
       - name: Upload validation reports
         if: always() && steps.upstream.outputs.changed == 'true'
         uses: actions/upload-artifact@v4
