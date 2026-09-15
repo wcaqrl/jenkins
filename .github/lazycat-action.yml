@@ -1,0 +1,46 @@
+version: 1
+
+project:
+  root: .
+  build_config: lzc-build.yml
+  package_file: package.yml
+  output: dist/peter.lazycat.app.jenkins.lpk
+  target_arch: amd64
+
+update:
+  strategy: publish
+  allow_downgrade: false
+  version_source:
+    type: image
+    image: jenkins
+    bump: patch
+
+build:
+  run_buildscript: false
+
+images:
+  - id: jenkins
+    target: service
+    service: jenkins
+    source: ghcr.io/wcaqrl/jenkins-lazycat
+    channel: custom
+    sort: created
+    tag_regex: '^lts-jdk21$'
+    delivery:
+      mode: lazycat
+
+stores:
+  official:
+    enabled: true
+    continue_if_newer_version: true
+    skip_if_version_exists: true
+    create_if_missing: false
+    changelog_locales: [zh, en]
+    retry:
+      enabled: false
+      max_attempts: 3
+      initial_delay: 2s
+      max_delay: 30s
+  private:
+    enabled: false
+    skip_if_version_exists: false

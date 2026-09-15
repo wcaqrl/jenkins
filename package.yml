@@ -9,7 +9,9 @@ homepage: https://www.jenkins.io/
 # services.jenkins.run_as 的最低系统版本。
 min_os_version: 1.6.0
 admin_only: true
-# unsupported_platforms 限制客户端平台，不用于声明容器 CPU 架构。
+unsupported_platforms:
+  - android
+  - ios
 locales:
   zh-CN:
     name: Jenkins

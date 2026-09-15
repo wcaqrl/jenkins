@@ -115,3 +115,9 @@ lzc-cli app install "$PWD/dist/peter.lazycat.app.jenkins-v1.0.2.lpk"
 `unsupported_platforms` 只能声明客户端平台，不能填 Docker 架构；项目已删除错误的 `linux/arm64` 值。
 
 相关资料：[Jenkins Docker](https://github.com/jenkinsci/docker)、[Configuration as Code](https://plugins.jenkins.io/configuration-as-code/)、[深色主题](https://plugins.jenkins.io/dark-theme/)、[懒猫 LPK v2 规范](https://developer.lazycat.cloud/spec/lpk-format.html)。
+
+## 自动跟随 Jenkins LTS
+
+仓库已提供两段 GitHub Actions 流程：`.github/workflows/build-jenkins-image.yml` 检查官方 Jenkins LTS 摘要、构建并完整验证定制镜像；`.github/workflows/publish-lazycat.yml` 复用 `ca-x/lazycat-github-action` 完成官方镜像转存、应用 patch 版本递增、LPK 构建与 lint、GitHub Release 和懒猫应用商店审核提交。
+
+启用前只需完成两项一次性设置：把首次生成的 `ghcr.io/wcaqrl/jenkins-lazycat` 包设为 Public，并把具有 `developer.app.manage` 权限的懒猫开发者 PAT 保存为仓库 Secret `LZC_API_TOKEN`。完整说明见 `docs/automation.md`。

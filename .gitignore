@@ -27,6 +27,7 @@ docker-config/
 
 # Tool caches and editor files
 .lzc-cli-*
+.lazycat-action/
 __pycache__/
 *.py[cod]
 .DS_Store

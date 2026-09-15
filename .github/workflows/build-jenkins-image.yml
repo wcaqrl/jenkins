@@ -1,0 +1,149 @@
+name: Build Jenkins custom image
+
+on:
+  schedule:
+    - cron: "23 */6 * * *"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Rebuild even when the Jenkins LTS digest is unchanged
+        type: boolean
+        default: false
+  push:
+    branches: [main]
+    paths:
+      - image/**
+      - scripts/fetch-downloads.py
+      - scripts/update-jenkins-base.py
+      - scripts/ci-validate.sh
+      - scripts/verify-on-box.py
+      - .github/workflows/build-jenkins-image.yml
+
+permissions:
+  actions: write
+  contents: write
+  packages: write
+
+concurrency:
+  group: jenkins-custom-image
+  cancel-in-progress: false
+
+env:
+  SOURCE_IMAGE: jenkins/jenkins:lts-jdk21
+  TARGET_IMAGE: ghcr.io/wcaqrl/jenkins-lazycat
+
+jobs:
+  build:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve current Jenkins LTS image
+        id: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker pull --platform linux/amd64 "${SOURCE_IMAGE}"
+          repo_digest="$(docker image inspect "${SOURCE_IMAGE}" --format '{{index .RepoDigests 0}}')"
+          digest="${repo_digest##*@}"
+          test "${#digest}" -eq 71
+          version="$(docker image inspect "${SOURCE_IMAGE}" --format '{{range .Config.Env}}{{println .}}{{end}}' | sed -n 's/^JENKINS_VERSION=//p' | head -n 1)"
+          test -n "${version}"
+          base_ref="${SOURCE_IMAGE}@${digest}"
+          previous="$(python3 -c 'import json; print(json.load(open("image/versions.lock.json"))["base_image"])')"
+          changed=false
+          if [[ "${base_ref}" != "${previous}" || "${GITHUB_EVENT_NAME}" == "push" || "${{ inputs.force || false }}" == "true" ]]; then
+            changed=true
+          fi
+          echo "base-ref=${base_ref}" >>"${GITHUB_OUTPUT}"
+          echo "version=${version}" >>"${GITHUB_OUTPUT}"
+          echo "changed=${changed}" >>"${GITHUB_OUTPUT}"
+
+      - name: Update pinned base metadata
+        if: steps.upstream.outputs.changed == 'true'
+        run: |
+          scripts/update-jenkins-base.py \
+            --base-ref "${{ steps.upstream.outputs.base-ref }}" \
+            --jenkins-version "${{ steps.upstream.outputs.version }}"
+
+      - name: Restore toolchain downloads
+        if: steps.upstream.outputs.changed == 'true'
+        uses: actions/cache@v4
+        with:
+          path: image/downloads
+          key: jenkins-toolchains-${{ runner.os }}-${{ hashFiles('image/versions.lock.json') }}
+
+      - name: Download and verify pinned toolchains
+        if: steps.upstream.outputs.changed == 'true'
+        run: scripts/fetch-downloads.py image
+
+      - name: Build amd64 image
+        if: steps.upstream.outputs.changed == 'true'
+        id: build
+        shell: bash
+        run: |
+          set -euo pipefail
+          fingerprint="$(sha256sum image/Dockerfile image/entrypoint.sh image/jenkins.yaml image/jenkins-bootstrap.yaml image/plugins.txt image/versions.lock.json | sha256sum | cut -d' ' -f1)"
+          candidate="${TARGET_IMAGE}:candidate-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          docker build --platform linux/amd64 \
+            --build-arg "BUILD_FINGERPRINT=${fingerprint}" \
+            --tag "${candidate}" image
+          echo "candidate=${candidate}" >>"${GITHUB_OUTPUT}"
+
+      - name: Validate Jenkins, plugins, tools, login and persistence
+        if: steps.upstream.outputs.changed == 'true'
+        env:
+          JENKINS_VALIDATION_ARTIFACT_DIR: ${{ runner.temp }}/jenkins-validation-report
+        run: scripts/ci-validate.sh "${{ steps.build.outputs.candidate }}"
+
+      - name: Upload validation reports
+        if: always() && steps.upstream.outputs.changed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: jenkins-validation-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/jenkins-validation-report
+          if-no-files-found: ignore
+
+      - name: Log in to GHCR
+        if: steps.upstream.outputs.changed == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push validated image
+        if: steps.upstream.outputs.changed == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          candidate="${{ steps.build.outputs.candidate }}"
+          version="${{ steps.upstream.outputs.version }}"
+          docker tag "${candidate}" "${TARGET_IMAGE}:lts-jdk21"
+          docker tag "${candidate}" "${TARGET_IMAGE}:${version}-jdk21"
+          docker push "${TARGET_IMAGE}:lts-jdk21"
+          docker push "${TARGET_IMAGE}:${version}-jdk21"
+
+      - name: Commit updated Jenkins pin
+        if: steps.upstream.outputs.changed == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add image/Dockerfile image/versions.lock.json
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git commit -m "Update Jenkins LTS to ${{ steps.upstream.outputs.version }} [skip ci]"
+          git push
+
+      - name: Start LazyCat publication check
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run publish-lazycat.yml --ref main

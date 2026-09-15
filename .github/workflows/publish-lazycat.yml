@@ -1,0 +1,70 @@
+name: Publish LazyCat Jenkins
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/lazycat-action.yml
+      - .github/workflows/publish-lazycat.yml
+      - lzc-build.yml
+      - lzc-manifest.yml
+      - package.yml
+      - lzc-icon.png
+
+permissions:
+  actions: write
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: lazycat-jenkins-release
+  cancel-in-progress: false
+
+jobs:
+  dispatch:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Start trusted publication check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run publish-lazycat.yml --ref main
+
+  prerequisites:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    outputs:
+      ready: ${{ steps.check.outputs.ready }}
+    steps:
+      - name: Check PAT and public staging image
+        id: check
+        shell: bash
+        env:
+          LZC_API_TOKEN: ${{ secrets.LZC_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          ready=true
+          if [[ -z "${LZC_API_TOKEN}" ]]; then
+            echo "::warning::Add the LazyCat developer PAT as repository secret LZC_API_TOKEN."
+            ready=false
+          fi
+          if ! docker manifest inspect ghcr.io/wcaqrl/jenkins-lazycat:lts-jdk21 >/dev/null 2>&1; then
+            echo "::warning::Make the GHCR package wcaqrl/jenkins-lazycat public, then rerun this workflow."
+            ready=false
+          fi
+          echo "ready=${ready}" >>"${GITHUB_OUTPUT}"
+
+  publish:
+    needs: prerequisites
+    if: needs.prerequisites.outputs.ready == 'true'
+    uses: ca-x/lazycat-github-action/.github/workflows/lazycat.yml@v1
+    with:
+      operation: auto
+      config: .github/lazycat-action.yml
+      changelog: |
+        更新 Jenkins LTS 定制镜像，并重新验证插件、开发工具链、免密登录和持久化。
+        Update the Jenkins LTS custom image and revalidate plugins, development tools, passwordless login, and persistence.
+      versioned-release-asset: true
+    secrets:
+      LZC_API_TOKEN: ${{ secrets.LZC_API_TOKEN }}

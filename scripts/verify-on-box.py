@@ -1,8 +1,11 @@
 import urllib.request, urllib.parse, urllib.error, http.cookiejar
-import base64,json,pathlib,secrets,string,time,sys,xml.sax.saxutils,subprocess
-root=pathlib.Path('/lzcsys/var/jenkins-custom')
-home=root/'validation/var/jenkins'
-base='http://127.0.0.1:18080'
+import base64,json,os,pathlib,secrets,string,time,sys,xml.sax.saxutils,subprocess
+root=pathlib.Path(os.environ.get('JENKINS_VALIDATION_ROOT','/lzcsys/var/jenkins-custom'))
+home=pathlib.Path(os.environ.get('JENKINS_VALIDATION_HOME',str(root/'validation/var/jenkins')))
+base=os.environ.get('JENKINS_VALIDATION_BASE_URL','http://127.0.0.1:18080').rstrip('/')
+plugins_file=pathlib.Path(os.environ.get('JENKINS_VALIDATION_PLUGINS_FILE',str(root/'build/plugins.txt')))
+reports_dir=pathlib.Path(os.environ.get('JENKINS_VALIDATION_REPORTS_DIR',str(root/'reports')))
+reports_dir.mkdir(parents=True,exist_ok=True)
 deadline=time.time()+300
 while True:
     try:
@@ -44,7 +47,7 @@ assert config['theme']=='dark',config
 assert config['executors']==2
 assert not config['failedPlugins'],config
 plugins=json.loads(request('/pluginManager/api/json?tree=plugins[shortName,version,active]'))['plugins']
-expected=(root/'build/plugins.txt').read_text().splitlines()
+expected=plugins_file.read_text().splitlines()
 for name in expected:
     assert any(p['shortName']==name and p['active'] for p in plugins),name
 if '--after-restart' in sys.argv:
@@ -102,16 +105,16 @@ cd ..
         try:
             result=json.loads(request('/job/toolchain-validation/lastBuild/api/json'))
             if result['number']>previous and not result['building']:
-                (root/'reports/pipeline-console.txt').write_bytes(request('/job/toolchain-validation/lastBuild/consoleText'))
+                (reports_dir/'pipeline-console.txt').write_bytes(request('/job/toolchain-validation/lastBuild/consoleText'))
                 assert result['result']=='SUCCESS',result['result']
                 break
         except urllib.error.HTTPError as e:
             if e.code!=404: raise
         if time.time()>deadline: raise SystemExit('Pipeline timed out')
         time.sleep(3)
-    (root/'reports/toolchain-report.txt').write_bytes(request('/job/toolchain-validation/lastSuccessfulBuild/artifact/toolchain-report.txt'))
-    (root/'reports/plugins.lock.json').write_text(json.dumps(sorted(plugins,key=lambda p:p['shortName']),indent=2)+'\n')
-    (root/'reports/jenkins-config-check.json').write_text(json.dumps(config,indent=2)+'\n')
+    (reports_dir/'toolchain-report.txt').write_bytes(request('/job/toolchain-validation/lastSuccessfulBuild/artifact/toolchain-report.txt'))
+    (reports_dir/'plugins.lock.json').write_text(json.dumps(sorted(plugins,key=lambda p:p['shortName']),indent=2)+'\n')
+    (reports_dir/'jenkins-config-check.json').write_text(json.dumps(config,indent=2)+'\n')
     alphabet=string.ascii_letters+string.digits+'_'
     while True:
         changed=''.join(secrets.choice(alphabet) for _ in range(16))
@@ -129,4 +132,4 @@ println "password-updated"
     changed_file.write_text(changed+'\n')
     changed_file.chmod(0o600)
     print('PASS: initial admin login, anonymous access denied, dark theme, plugins, pipeline, artifacts, password change')
-    print((root/'reports/toolchain-report.txt').read_text())
+    print((reports_dir/'toolchain-report.txt').read_text())

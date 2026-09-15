@@ -1,5 +1,12 @@
-FROM python:3.12-slim-trixie@sha256:78387bc3881b8273120a12ebe6c1ab22b018ccc2c9adf565ae1ac9b536e184ea AS python
-FROM jenkins/jenkins:lts-jdk21@sha256:c1e4c349365f6d16d88595b2c5f7e8ff39b8ae1d061f62420bac193b4b9616d0
+ARG PYTHON_BASE_IMAGE=python:3.12-slim-trixie@sha256:78387bc3881b8273120a12ebe6c1ab22b018ccc2c9adf565ae1ac9b536e184ea
+ARG JENKINS_BASE_IMAGE=jenkins/jenkins:lts-jdk21@sha256:c1e4c349365f6d16d88595b2c5f7e8ff39b8ae1d061f62420bac193b4b9616d0
+FROM ${PYTHON_BASE_IMAGE} AS python
+FROM ${JENKINS_BASE_IMAGE}
+ARG JENKINS_BASE_IMAGE
+ARG BUILD_FINGERPRINT=local
+LABEL org.opencontainers.image.source="https://github.com/wcaqrl/jenkins" \
+      org.opencontainers.image.base.name="${JENKINS_BASE_IMAGE}" \
+      peter.lazycat.build-fingerprint="${BUILD_FINGERPRINT}"
 USER root
 RUN sed -i 's|http://deb.debian.org/debian|https://mirrors.ustc.edu.cn/debian|g' /etc/apt/sources.list.d/debian.sources \
     && apt-get update && apt-get install -y --no-install-recommends \
