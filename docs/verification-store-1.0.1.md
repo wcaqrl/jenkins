@@ -2,14 +2,11 @@
 
 ## 镜像
 
-- 微服本地标签：`peter/jenkins-custom:2.568.3-3`
-- 企业仓库标签：`registry.corp.lazycat.cloud/peterlc/jenkins-custom:2.568.3-3`
-- 推送摘要：`sha256:ba55cbea041da01798405211f70f576e0dcbc4c20ab5e7f3da347e37e3164d93`
 - 懒猫官方镜像：`registry.lazycat.cloud/peter/jenkins-peter-9a85f1af-ab49-4652-8d83-4ba2b7262e11:a9778070fff0160e`
 - 官方 manifest 摘要：`sha256:a9778070fff0160e39edd32ef21515d28fa5223d121e39d510df3a8a5b4ca792`
 - 架构：`linux/amd64`
 
-镜像在 `peterlc` 微服上通过 `lzc-docker` 构建并推送，没有在本机 Ubuntu 执行镜像构建。
+镜像最初在 `peterlc` 微服上通过 `lzc-docker` 构建并验证，没有在本机 Ubuntu 执行镜像构建。
 
 ## 功能验证
 
@@ -37,9 +34,7 @@
 
 ## 应用商店镜像转存
 
-2026-09-11 使用开发者 PAT 请求生产 `/sdk/v3/developer/app/docker/image/push/v3/copy` 成功，HTTP 200，服务端返回 `data: "ok"`。首次以私有企业仓库为源时，任务在拉取阶段因 `UNAUTHORIZED` 失败。
-
-随后在本机将同摘要镜像临时推送到 6 小时自动过期、可匿名拉取的 OCI 中转仓库，并重新请求 SDK。最终进度响应为 `finished: true`、`errmsg: ""`，实际返回：
+2026-09-11 使用开发者 PAT 请求生产 `/sdk/v3/developer/app/docker/image/push/v3/copy` 成功。镜像通过可匿名拉取的 OCI 中转源提交，最终进度响应为 `finished: true`、`errmsg: ""`，实际返回：
 
 ```text
 registry.lazycat.cloud/peter/jenkins-peter-9a85f1af-ab49-4652-8d83-4ba2b7262e11:a9778070fff0160e

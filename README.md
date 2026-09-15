@@ -1,12 +1,9 @@
 # Jenkins 定制镜像与懒猫 LPK
 
-包名为 `peter.lazycat.app.jenkins`，当前版本为 `1.0.2`。镜像构建、运行和验证均在 `peterlc` 微服上完成，本机只保存源文件、资料和轻量 LPK。
+包名为 `peter.lazycat.app.jenkins`，当前版本为 `1.0.2`。LPK 运行时使用懒猫官方镜像；后续 Jenkins LTS 镜像构建、验证和发布由 GitHub Actions 完成。
 
 ## 当前状态
 
-- 微服本地镜像：`peter/jenkins-custom:2.568.3-3`
-- 企业仓库镜像：`registry.corp.lazycat.cloud/peterlc/jenkins-custom:2.568.3-3`
-- 企业仓库摘要：`sha256:ba55cbea041da01798405211f70f576e0dcbc4c20ab5e7f3da347e37e3164d93`
 - 懒猫官方镜像：`registry.lazycat.cloud/peter/jenkins-peter-9a85f1af-ab49-4652-8d83-4ba2b7262e11:a9778070fff0160e`
 - 官方 manifest 摘要：`sha256:a9778070fff0160e39edd32ef21515d28fa5223d121e39d510df3a8a5b4ca792`
 - 平台：`linux/amd64`
@@ -77,8 +74,9 @@ Jenkins Home 统一设为 `/lzcapp/var/jenkins`，配置、用户、凭据、插
 | `image/plugins.txt` | 插件输入清单 |
 | `image/plugins.lock.txt` | 实际安装的插件版本快照 |
 | `image/versions.lock.json` | 上游镜像和工具链版本、摘要及校验值 |
-| `scripts/build-on-box.sh` | 在微服构建、验证并推送企业仓库镜像 |
-| `scripts/remote-validate.sh` | 微服端功能与重启持久化验证 |
+| `scripts/ci-validate.sh` | 在隔离容器中完成功能与重启持久化验证 |
+| `.github/workflows/build-jenkins-image.yml` | 检查 Jenkins LTS、构建验证镜像并推送公开 GHCR |
+| `.github/workflows/publish-lazycat.yml` | 转存官方镜像、构建 LPK 并提交应用审核 |
 | `docs/passwordless-login.md` | 三阶段免密登录原理、Jenkins 适配点与验证步骤 |
 | `docs/verification-1.0.2.md` | 1.0.2 构建、安装及免密登录验证记录 |
 | `lzc-manifest.yml` | 路由、服务、动态域名和固定管理员密码配置 |
@@ -99,14 +97,7 @@ lzc-cli lpk info dist/peter.lazycat.app.jenkins-v1.0.2.lpk
 lzc-cli lpk lint dist/peter.lazycat.app.jenkins-v1.0.2.lpk
 ```
 
-重新制作镜像时执行：
-
-```bash
-cd /path/to/jenkins
-./scripts/build-on-box.sh
-```
-
-该脚本把镜像构建、运行验证和企业仓库推送放在微服上。取得生产 `copy-image` 返回的官网镜像地址后，更新 `lzc-manifest.yml`，再在本机执行 `lzc-cli project build` 和商店 lint，最后安装验证：
+重新制作镜像时，手动运行 `Build Jenkins custom image` GitHub Actions 工作流，或等待定时检查。镜像通过验证后会推送到公开 GHCR，并触发懒猫镜像转存与 LPK 发布流程。需要手动安装验证时执行：
 
 ```bash
 lzc-cli app install "$PWD/dist/peter.lazycat.app.jenkins-v1.0.2.lpk"
