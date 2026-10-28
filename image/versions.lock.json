@@ -1,6 +1,6 @@
 {
-  "jenkins": "2.580.1",
-  "base_image": "jenkins/jenkins:lts-jdk21@sha256:a660310e39ade10631f774bacd5219de767dfd08947ea5c32a739b5e5bb382c1",
+  "jenkins": "2.580.2",
+  "base_image": "jenkins/jenkins:lts-jdk21@sha256:74401de6a6f92e1afe1b02d1c8e3d0c33f263bfb5275dd8813f9150355f2367b",
   "python_image": "python:3.12-slim-trixie@sha256:78387bc3881b8273120a12ebe6c1ab22b018ccc2c9adf565ae1ac9b536e184ea",
   "go": "go1.27.1",
   "go_sha256": "63d339f0da5ab53635a56f2490a7984dfe12dfcff22ad749f63edaf590168445",
@@ -8,5 +8,5 @@
   "node_sha256": "40e1d3225c1c9ae9a2671c98ecb9857e4d5555026394f348645676798840d5c5",
   "npm": "12.0.2",
   "architecture": "linux/amd64",
-  "checked_on": "2026-09-30"
+  "checked_on": "2026-10-28"
 }
